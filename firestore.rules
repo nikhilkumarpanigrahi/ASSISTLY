@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isValidRequest() {
+      let requiredFields = ['title', 'description', 'location', 'urgency', 'status'];
+      let data = request.resource.data;
+      return data.keys().hasAll(requiredFields)
+        && data.title is string && data.title.size() > 0
+        && data.description is string && data.description.size() > 0
+        && data.location is string && data.location.size() > 0
+        && data.urgency in ['low', 'medium', 'high']
+        && data.status in ['open', 'claimed', 'completed'];
+    }
+    
+    function isValidTimestamp() {
+      let data = request.resource.data;
+      return data.timestamp == request.time;
+    }
+    
+    // Rate limiting helper
+    function notRateLimited() {
+      let recentWrites = getCountFromTime('writes', duration.value(5, 'MINUTES'));
+      return recentWrites < 10;
+    }
+
+    // Requests collection
+    match /requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() 
+        && isValidRequest() 
+        && isValidTimestamp()
+        && notRateLimited();
+      allow update: if isAuthenticated() 
+        && (isOwner(resource.data.createdByUid) 
+            || (resource.data.status == 'open' && request.resource.data.status == 'claimed')
+            || (resource.data.claimedByUid == request.auth.uid && resource.data.status == 'claimed'))
+        && notRateLimited();
+      allow delete: if isAuthenticated() 
+        && isOwner(resource.data.createdByUid)
+        && resource.data.status == 'open';
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Audit logs
+    match /audit_logs/{logId} {
+      allow read: if false;  // Only accessible through admin SDK
+      allow create: if isAuthenticated();
+    }
+
+    // Rate limiting counters
+    match /counters/{document=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}
