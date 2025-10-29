@@ -9,41 +9,23 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-    
-    function isValidRequest() {
-      let requiredFields = ['title', 'description', 'location', 'urgency', 'status'];
-      let data = request.resource.data;
-      return data.keys().hasAll(requiredFields)
-        && data.title is string && data.title.size() > 0
-        && data.description is string && data.description.size() > 0
-        && data.location is string && data.location.size() > 0
-        && data.urgency in ['low', 'medium', 'high']
-        && data.status in ['open', 'claimed', 'completed'];
-    }
-    
-    function isValidTimestamp() {
-      let data = request.resource.data;
-      return data.timestamp == request.time;
-    }
-    
-    // Rate limiting helper
-    function notRateLimited() {
-      let recentWrites = getCountFromTime('writes', duration.value(5, 'MINUTES'));
-      return recentWrites < 10;
-    }
 
     // Requests collection
     match /requests/{requestId} {
+      // Anyone authenticated can read requests
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() 
-        && isValidRequest() 
-        && isValidTimestamp()
-        && notRateLimited();
+      
+      // Anyone authenticated can create a request
+      allow create: if isAuthenticated()
+        && request.resource.data.createdByUid == request.auth.uid;
+      
+      // Can update if you're the owner OR if you're claiming/completing it
       allow update: if isAuthenticated() 
         && (isOwner(resource.data.createdByUid) 
-            || (resource.data.status == 'open' && request.resource.data.status == 'claimed')
-            || (resource.data.claimedByUid == request.auth.uid && resource.data.status == 'claimed'))
-        && notRateLimited();
+            || request.resource.data.claimedByUid == request.auth.uid
+            || resource.data.claimedByUid == request.auth.uid);
+      
+      // Can delete if you're the owner and it's still open
       allow delete: if isAuthenticated() 
         && isOwner(resource.data.createdByUid)
         && resource.data.status == 'open';
@@ -55,16 +37,14 @@ service cloud.firestore {
       allow write: if isAuthenticated() && isOwner(userId);
     }
 
-    // Audit logs
-    match /audit_logs/{logId} {
-      allow read: if false;  // Only accessible through admin SDK
-      allow create: if isAuthenticated();
-    }
-
-    // Rate limiting counters
-    match /counters/{document=**} {
-      allow read: if false;
-      allow write: if false;
+    // Messages collection
+    match /messages/{messageId} {
+      // Allow reading if you're the sender or receiver
+      allow read: if isAuthenticated();
+      
+      // Allow creating if you're the sender
+      allow create: if isAuthenticated()
+        && request.resource.data.senderId == request.auth.uid;
     }
   }
 }

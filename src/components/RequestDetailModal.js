@@ -14,7 +14,7 @@ const RequestDetailModal = ({ request, onClose, onOpenRating }) => {
         <div style={{padding: '1rem'}}>
           <p>{request.description}</p>
           <div style={{marginTop: '1rem'}}>
-            <strong>Location:</strong> {request.location}
+            <strong>Location:</strong> {typeof request.location === 'string' ? request.location : request.location?.address || 'Location set'}
           </div>
           <div style={{marginTop: '0.5rem'}}>
             <strong>Urgency:</strong> <span className={`urgency-badge ${request.urgency}`}>{request.urgency}</span>

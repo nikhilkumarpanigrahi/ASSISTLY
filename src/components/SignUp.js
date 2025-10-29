@@ -39,6 +39,10 @@ const SignUp = () => {
   });
 
   const googleProvider = new GoogleAuthProvider();
+  // Force account selection every time
+  googleProvider.setCustomParameters({
+    prompt: 'select_account'
+  });
 
   const handleGoogleSignUp = async () => {
     setLoading(true);
@@ -239,6 +243,7 @@ const SignUp = () => {
           </Typography>
         </Box>
       </Paper>
+      </Box>
     </Container>
   );
 };
