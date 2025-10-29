@@ -49,6 +49,10 @@ const Login = () => {
   });
 
   const googleProvider = new GoogleAuthProvider();
+  // Force account selection every time
+  googleProvider.setCustomParameters({
+    prompt: 'select_account'
+  });
 
   // Set up persistent authentication
   useEffect(() => {
@@ -187,10 +191,10 @@ const Login = () => {
           }}
         >
           <Typography variant="h3" component="h1" gutterBottom color="primary" sx={{ fontWeight: 'bold' }}>
-            Community Care Platform
+            Assistly
           </Typography>
           <Typography variant="h5" gutterBottom color="textSecondary">
-            Connect, Share, and Support Your Community
+            Your trusted community assistance platform
           </Typography>
           <Box sx={{ my: 4 }}>
             <Typography variant="body1" paragraph>
@@ -303,7 +307,7 @@ const Login = () => {
             startIcon={<GoogleIcon />}
             sx={{ textTransform: 'none' }}
           >
-            Continue with Google
+            Sign in with Google
           </Button>
         </Box>
 

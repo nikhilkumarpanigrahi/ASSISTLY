@@ -15,10 +15,23 @@ export const useAuth = (setUser) => {
 // Format date for display
 export const formatDate = (timestamp) => {
   if (!timestamp) return '';
-  return new Date(timestamp).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
+  
+  // Handle Firestore Timestamp
+  let date;
+  if (timestamp.toDate) {
+    date = timestamp.toDate();
+  } else if (timestamp.seconds) {
+    date = new Date(timestamp.seconds * 1000);
+  } else {
+    date = new Date(timestamp);
+  }
+  
+  return date.toLocaleString('en-US', {
+    month: 'short',
     day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
   });
 };
 

@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  NODE_VERSION = "18"
+  REACT_APP_NAME = "Assistly"
+  REACT_APP_DESCRIPTION = "Your trusted community assistance platform - connecting neighbors who care"

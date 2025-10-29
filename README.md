@@ -1,4 +1,4 @@
-# Community Care Platform
+# Assistly
 
 ## Getting Started
 

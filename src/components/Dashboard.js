@@ -5,13 +5,10 @@ import {
   Grid,
   Paper,
   Typography,
-  Button,
   Avatar,
   Tabs,
   Tab,
   CircularProgress,
-  Card,
-  CardContent,
   List,
   ListItem,
   ListItemText,
@@ -19,14 +16,11 @@ import {
   Divider,
   Badge,
   IconButton,
-  Tooltip,
-  Alert
+  Tooltip
 } from '@mui/material';
 import {
   Person as PersonIcon,
   EditRounded as EditIcon,
-  Notifications as NotificationsIcon,
-  Settings as SettingsIcon,
   VolunteerActivism as VolunteerIcon,
   EmojiEvents as AchievementsIcon,
   History as HistoryIcon,
@@ -46,7 +40,7 @@ import StatisticsVisualizer from './StatisticsVisualizer';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { db } from '../firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { COLLECTIONS } from '../utils/constants';
 import RequestCard from './RequestCard';
 
@@ -85,12 +79,6 @@ const Dashboard = () => {
     categoriesBreakdown: {}
   });
   const [showProfileEditor, setShowProfileEditor] = useState(false);
-  const [showNotificationPrefs, setShowNotificationPrefs] = useState(false);
-  const [activityData, setActivityData] = useState({
-    labels: [],
-    requests: [],
-    helped: []
-  });
   const [myRequests, setMyRequests] = useState([]);
   const [helpedRequests, setHelpedRequests] = useState([]);
   const [achievements, setAchievements] = useState([]);
@@ -125,36 +113,35 @@ const Dashboard = () => {
 
   // Fetch user data and statistics
   useEffect(() => {
-  const fetchUserData = async () => {
-    try {
-      // Get last 6 months for activity chart
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const fetchUserData = async () => {
+      try {
+        // Get last 6 months for activity chart
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      // Fetch user's requests
-      const requestsQuery = query(
-        collection(db, COLLECTIONS.REQUESTS),
-        where('userId', '==', user.uid),
-        where('createdAt', '>=', sixMonthsAgo),
-        orderBy('createdAt', 'desc')
-      );
-      const requestsSnapshot = await getDocs(requestsQuery);
-      const requests = requestsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setMyRequests(requests);
+        // Fetch user's requests
+        const requestsQuery = query(
+          collection(db, COLLECTIONS.REQUESTS),
+          where('createdByUid', '==', user.uid)
+        );
+        const requestsSnapshot = await getDocs(requestsQuery);
+        const requests = requestsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setMyRequests(requests);
 
-      // Calculate categories breakdown
-      const categories = requests.reduce((acc, request) => {
-        const category = request.category || 'Other';
-        acc[category] = (acc[category] || 0) + 1;
-        return acc;
-      }, {});        // Fetch requests user has helped with
+        // Calculate categories breakdown
+        const categories = requests.reduce((acc, request) => {
+          const category = request.category || 'Other';
+          acc[category] = (acc[category] || 0) + 1;
+          return acc;
+        }, {});
+
+        // Fetch requests user has helped with (claimed by user)
         const helpedQuery = query(
           collection(db, COLLECTIONS.REQUESTS),
-          where('helpedBy', 'array-contains', user.uid),
-          orderBy('createdAt', 'desc')
+          where('claimedByUid', '==', user.uid)
         );
         const helpedSnapshot = await getDocs(helpedQuery);
         const helped = helpedSnapshot.docs.map(doc => ({
@@ -163,15 +150,22 @@ const Dashboard = () => {
         }));
         setHelpedRequests(helped);
 
+        // Calculate response rate first
+        const totalOpportunities = helped.length + requests.filter(r => r.status === 'open').length;
+        const responseRate = totalOpportunities > 0
+          ? Math.round((helped.length / totalOpportunities) * 100)
+          : 0;
+
         // Calculate statistics
         setUserStats({
           totalRequests: requests.length,
           completedRequests: requests.filter(r => r.status === 'completed').length,
           helpedOthers: helped.length,
-          impact: helped.length + requests.filter(r => r.status === 'completed').length
+          impact: helped.length + requests.filter(r => r.status === 'completed').length,
+          responseRate: responseRate
         });
 
-              // Calculate achievements
+        // Calculate achievements
         const userAchievements = [];
         
         // Request Creation Achievements
@@ -400,19 +394,6 @@ const Dashboard = () => {
           });
         }
 
-        // Calculate response rate
-        const totalOpportunities = helped.length + 
-          requests.filter(r => r.status === 'open').length;
-        const responseRate = totalOpportunities > 0
-          ? Math.round((helped.length / totalOpportunities) * 100)
-          : 0;
-
-        // Update userStats with response rate
-        setUserStats(prev => ({
-          ...prev,
-          responseRate: responseRate
-        }));
-
         // Get community totals
         const communitySnapshot = await getDocs(collection(db, COLLECTIONS.REQUESTS));
         const communityTotalRequests = communitySnapshot.size;
@@ -432,12 +413,6 @@ const Dashboard = () => {
           }
         });
 
-        const labels = Object.keys(months).slice(-6);
-        setActivityData({
-          labels,
-          requests: labels.map(month => months[month] || 0),
-          helped: labels.map(month => helpedMonths[month] || 0)
-        });
         setAchievements(userAchievements);
 
       } catch (error) {
@@ -448,8 +423,10 @@ const Dashboard = () => {
       }
     };
 
-    fetchUserData();
-  }, [user.uid, showNotification]);
+    if (user) {
+      fetchUserData();
+    }
+  }, [user, showNotification]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -507,14 +484,6 @@ const Dashboard = () => {
             <Typography variant="body1" color="textSecondary">
               Member since {new Date(user.metadata.creationTime).toLocaleDateString()}
             </Typography>
-          </Grid>
-          <Grid item>
-            <IconButton size="large">
-              <NotificationsIcon />
-            </IconButton>
-            <IconButton size="large">
-              <SettingsIcon />
-            </IconButton>
           </Grid>
         </Grid>
 

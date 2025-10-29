@@ -12,7 +12,14 @@ import {
   Grid,
   Typography,
   Chip,
-  Alert
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
+  ToggleButtonGroup,
+  ToggleButton
 } from '@mui/material';
 import {
   PhotoCamera as PhotoCameraIcon,
@@ -35,7 +42,9 @@ const ProfileEditor = ({ open, onClose, userData, onUpdate }) => {
     bio: userData?.bio || '',
     skills: userData?.skills || [],
     languages: userData?.languages || [],
-    website: userData?.website || ''
+    website: userData?.website || '',
+    userType: userData?.userType || 'both',
+    availability: userData?.availability || 'available'
   });
   const [newSkill, setNewSkill] = useState('');
   const [newLanguage, setNewLanguage] = useState('');
@@ -125,6 +134,8 @@ const ProfileEditor = ({ open, onClose, userData, onUpdate }) => {
         skills: formData.skills,
         languages: formData.languages,
         website: formData.website,
+        userType: formData.userType,
+        availability: formData.availability,
         updatedAt: new Date()
       });
 
@@ -187,8 +198,47 @@ const ProfileEditor = ({ open, onClose, userData, onUpdate }) => {
               value={formData.displayName}
               onChange={handleChange}
               disabled={loading}
+              helperText="How you want to be known in the community"
             />
           </Grid>
+
+          <Grid item xs={12}>
+            <FormControl fullWidth>
+              <InputLabel>I am a...</InputLabel>
+              <Select
+                name="userType"
+                value={formData.userType}
+                onChange={handleChange}
+                disabled={loading}
+                label="I am a..."
+              >
+                <MenuItem value="resident">Resident (I need help)</MenuItem>
+                <MenuItem value="volunteer">Volunteer (I want to help)</MenuItem>
+                <MenuItem value="both">Both (I need and offer help)</MenuItem>
+              </Select>
+              <FormHelperText>Select how you want to participate in the community</FormHelperText>
+            </FormControl>
+          </Grid>
+
+          {(formData.userType === 'volunteer' || formData.userType === 'both') && (
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Availability Status</InputLabel>
+                <Select
+                  name="availability"
+                  value={formData.availability}
+                  onChange={handleChange}
+                  disabled={loading}
+                  label="Availability Status"
+                >
+                  <MenuItem value="available">Available to Help</MenuItem>
+                  <MenuItem value="busy">Busy (Limited Availability)</MenuItem>
+                  <MenuItem value="unavailable">Unavailable</MenuItem>
+                </Select>
+                <FormHelperText>Let others know your current availability</FormHelperText>
+              </FormControl>
+            </Grid>
+          )}
 
           <Grid item xs={12}>
             <TextField

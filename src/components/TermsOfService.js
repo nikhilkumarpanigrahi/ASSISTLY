@@ -30,7 +30,7 @@ const TermsOfService = () => {
             1. Acceptance of Terms
           </Typography>
           <Typography paragraph>
-            By accessing and using the Community Care Platform, you agree to be bound by these Terms of Service
+            By accessing and using Assistly, you agree to be bound by these Terms of Service
             and all applicable laws and regulations. If you do not agree with any of these terms, you are
             prohibited from using or accessing this platform.
           </Typography>
@@ -39,7 +39,7 @@ const TermsOfService = () => {
             2. Use License
           </Typography>
           <Typography paragraph>
-            Permission is granted to temporarily access the Community Care Platform for personal,
+            Permission is granted to temporarily access Assistly for personal,
             non-commercial transitory viewing only.
           </Typography>
 
@@ -68,7 +68,7 @@ const TermsOfService = () => {
             5. Limitation of Liability
           </Typography>
           <Typography paragraph>
-            The Community Care Platform shall not be liable for any indirect, incidental, special,
+            Assistly shall not be liable for any indirect, incidental, special,
             consequential, or punitive damages resulting from your use or inability to use the service.
           </Typography>
 
